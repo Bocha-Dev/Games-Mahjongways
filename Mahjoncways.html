@@ -1,1 +1,999 @@
-testt
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjong Slot Demo Kaskade 5x5</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Latar belakang diperbarui menjadi hijau tua yang lebih dalam */
+            background: linear-gradient(135deg, #004d40, #00332b); 
+            min-height: 10vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .slot-container {
+            width: 100%;
+            max-width: 800px;
+            background: #2a3440; /* Dark inner container */
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+        .reel-grid {
+            /* Diperbarui menjadi 5 kolom */
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 Kolom */
+            gap: 8px; /* Sedikit dikecilkan agar muat */
+            padding: 10px;
+            border: 5px solid #ffcc00; /* Gold border */
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .symbol-cell {
+            height: 70px; /* Disesuaikan untuk 5x5 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            font-size: 1.8rem; /* Disesuaikan */
+            font-weight: 900;
+            color: white;
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, background-color 0.2s;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+        /* Style untuk simulasi pecahan/kosong */
+        .symbol-cell.empty {
+            background-color: transparent !important;
+            border: 2px dashed #ffcc00;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+        .symbol-cell.winning {
+            animation: pulse-win 0.3s 2 alternate; /* Cepat berkedip 2 kali lalu hilang */
+            background-color: #f7d300 !important; 
+            color: #1f2937;
+            box-shadow: 0 0 20px #f7d300, inset 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        @keyframes pulse-win {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(1.05); opacity: 0.9; }
+        }
+        .spin-button {
+            background-image: linear-gradient(180deg, #ff9900, #cc7a00);
+            box-shadow: 0 4px #995c00;
+            transition: all 0.1s;
+        }
+        .spin-button:hover:not(:disabled) {
+            background-image: linear-gradient(180deg, #ffaa33, #e68a00);
+            box-shadow: 0 6px #995c00;
+            transform: translateY(-2px);
+        }
+        .spin-button:active:not(:disabled) {
+            box-shadow: 0 2px #995c00;
+            transform: translateY(2px);
+        }
+        .spin-button:disabled {
+            background-image: linear-gradient(180deg, #555, #333);
+            box-shadow: 0 4px #111;
+            cursor: not-allowed;
+        }
+        
+        /* --- MULTIPLIER MINIMALIS BARU --- */
+        .multiplier-box {
+            display: flex;
+            justify-content: center;
+            gap: 6px; /* Gap berkurang */
+            margin-bottom: 20px;
+            padding: 5px 0;
+        }
+        .multiplier-item {
+            padding: 4px 8px; /* Padding berkurang */
+            border-radius: 6px;
+            font-weight: 600; /* Sedikit kurang tebal */
+            color: #ccc; /* Warna teks lebih terang untuk default */
+            background-color: transparent; /* Latar belakang transparan */
+            border: 2px solid transparent; /* Border transparan default */
+            transition: all 0.2s;
+            box-shadow: none;
+            opacity: 0.7; /* Sedikit redup saat tidak aktif */
+        }
+        .multiplier-item.active {
+            background-color: #ffcc00; /* Emas aktif */
+            color: #1f2937; /* Teks gelap */
+            border-color: #fff; /* Border putih saat aktif */
+            transform: scale(1.05); /* Skala lebih halus */
+            box-shadow: 0 0 8px #ffcc00; /* Glow lebih lembut */
+            font-weight: 800; /* Teks tebal saat aktif */
+            opacity: 1; /* Opasitas penuh */
+        }
+        /* --- END MULTIPLIER MINIMALIS BARU --- */
+
+        /* --- STYLING MINIMALIS BARU UNTUK KONTROL TARUHAN --- */
+        .bet-control-btn {
+            /* Minimalis, Clean Look */
+            background-color: #3f4a59; /* Slightly lighter than panel */
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .bet-control-btn:hover:not(:disabled) {
+            background-color: #55606e; /* Darker on hover */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .bet-control-btn:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .bet-control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        /* --- END NEW STYLING --- */
+
+        @media (max-width: 640px) {
+            .symbol-cell {
+                height: 55px;
+                font-size: 1.2rem;
+            }
+            .reel-grid {
+                gap: 4px;
+            }
+        }
+    </style>
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        setLogLevel('Debug');
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-mahjong-slot-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId = 'loading';
+        // Saldo awal 100.000, Taruhan awal 400
+        let gameData = { balance: 100000, bet: 400 }; 
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        }
+
+        function getBalanceDocRef(uid) {
+            return doc(db, `artifacts/${appId}/users/${uid}/mahjong_slot_game`, 'balance_data');
+        }
+
+        async function initializeAuthAndData() {
+            try {
+                if (auth) {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            const balanceRef = getBalanceDocRef(userId);
+                            onSnapshot(balanceRef, (docSnap) => {
+                                if (docSnap.exists()) {
+                                    gameData = docSnap.data();
+                                } else {
+                                    setDoc(balanceRef, gameData, { merge: true });
+                                }
+                                updateUI();
+                            }, (error) => {
+                                console.error("Error saat mendengarkan saldo:", error);
+                                showMessage("Kesalahan koneksi ke database. Saldo mungkin tidak tersimpan.", "error");
+                                updateUI();
+                            });
+                        } else {
+                            userId = 'anonymous';
+                            updateUI();
+                        }
+                    });
+                } else {
+                    userId = 'offline-mode';
+                    updateUI();
+                }
+            } catch (error) {
+                console.error("Kesalahan dalam inisialisasi Firebase/Auth:", error);
+                showMessage("Kesalahan saat login. Game berjalan dalam mode lokal.", "error");
+                userId = 'error-mode';
+                updateUI();
+            }
+        }
+
+        async function saveBalance() {
+            if (db && userId && userId !== 'loading' && userId !== 'anonymous' && userId !== 'error-mode') {
+                try {
+                    await setDoc(getBalanceDocRef(userId), gameData, { merge: true });
+                } catch (error) {
+                    console.error("Gagal menyimpan saldo:", error);
+                    showMessage("Gagal menyimpan saldo ke database.", "error");
+                }
+            }
+        }
+
+        window.initializeAuthAndData = initializeAuthAndData;
+        window.saveBalance = saveBalance;
+        window.gameData = gameData;
+        window.updateUI = updateUI;
+        window.spinReels = spinReels;
+        window.toggleTurbo = toggleTurbo;
+        window.startAutoSpin = startAutoSpin;
+        window.stopAutoSpin = stopAutoSpin;
+    </script>
+
+    <script>
+        // --- GAME LOGIC START ---
+
+        // Konfigurasi Batas Taruhan BARU
+        const MIN_BET = 400;
+        const MAX_BET = 1000000;
+
+        // Konfigurasi Game (5 Reels, 5 Rows)
+        const REELS = 5; // Diperbarui dari 4 menjadi 5
+        const ROWS = 5;
+        const SYMBOLS = [
+            // NILAI DASAR SIMBOL DITURUNKAN SECARA LEBIH EKSTREM UNTUK KESULITAN SANGAT SANGAT TINGGI
+            { id: 'GD', value: 40, color: '#f7d300', text: '🐉', name: 'Naga Emas (Wild)' }, // Dari 45 -> 40
+            { id: 'SC', value: 0, color: '#32cd32', text: '💰', name: 'Scatter (Free Spin)' }, 
+            { id: 'RD', value: 15, color: '#e74c3c', text: '發', name: 'Naga Merah' }, // Dari 18 -> 15
+            { id: 'WD', value: 10, color: '#ecf0f1', text: '白', name: 'Naga Putih' }, // Dari 12 -> 10
+            { id: 'B1', value: 7, color: '#27ae60', text: '條', name: 'Bambu' }, // Dari 8 -> 7
+            { id: 'D1', value: 3, color: '#3498db', text: '筒', name: 'Lingkaran' }, // Dari 4 -> 3
+            { id: 'C1', value: 1, color: '#9b59b6', text: '萬', name: 'Karakter' }  // Dari 2 -> 1
+        ];
+        
+        const SYMBOL_IDS = SYMBOLS.map(s => s.id);
+        
+        // BOBOT SIMBOL (DITURUNKAN LAGI MENJADI SANGAT SANGAT SULIT SEKALI)
+        const SYMBOL_WEIGHTS = { 
+            'GD': 1,    // Wild (Extremely Rare) - Dari 2 -> 1
+            'SC': 1,    // Scatter (Extremely Rare) - Dari 2 -> 1
+            'RD': 3,    // Naga Merah (Very Rare) - Dari 5 -> 3
+            'WD': 5,   // Naga Putih (Rare) - Dari 8 -> 5
+            'B1': 100,   // Bambu (Common) - Dari 70 -> 100
+            'D1': 120,   // Lingkaran (More Common) - Dari 80 -> 120
+            'C1': 150    // Karakter (Most Common) - Dari 100 -> 150
+        };
+
+        const WEIGHTED_SYMBOL_POOL = [];
+        for (const id in SYMBOL_WEIGHTS) {
+            for (let i = 0; i < SYMBOL_WEIGHTS[id]; i++) {
+                WEIGHTED_SYMBOL_POOL.push(id);
+            }
+        }
+
+        // Multiplier Configuration
+        const NORMAL_MULTIPLIERS = [1, 2, 3, 5];
+        const FREE_SPIN_MULTIPLIERS = [2, 4, 6, 10];
+        
+        let reelsMatrix = Array(REELS).fill(null).map(() => Array(ROWS).fill(SYMBOL_IDS[0]));
+        let isSpinning = false;
+        let quickStop = false; // Flag BARU untuk menghentikan putaran cepat
+        let messageTimeout;
+        
+        let isTurbo = false;
+        let autoSpinCount = 0; 
+        let freeSpinCount = 0; 
+        let cascadeCount = 0; 
+        let currentTotalWin = 0; 
+        
+        // Utility Functions
+        function getSymbol(id) {
+            return SYMBOLS.find(s => s.id === id);
+        }
+
+        function getWeightedRandomSymbol() {
+            const randomIndex = Math.floor(Math.random() * WEIGHTED_SYMBOL_POOL.length);
+            return WEIGHTED_SYMBOL_POOL[randomIndex];
+        }
+
+        function updateDateTimeDisplay() {
+            const now = new Date();
+            const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' };
+            
+            const datePart = now.toLocaleDateString('id-ID', dateOptions).replace(/\./g, ''); 
+            const timePart = now.toLocaleTimeString('id-ID', timeOptions); 
+            
+            const displayEl = document.getElementById('user-id-display');
+            if (displayEl) {
+                displayEl.textContent = `${datePart} | ${timePart}`;
+            }
+        }
+        
+        function updateUI() {
+            const isFreeSpinActive = freeSpinCount > 0;
+            const isAutoActive = autoSpinCount > 0;
+            const isBetSufficient = window.gameData.balance >= window.gameData.bet;
+
+            // Kontrol Taruhan + / -
+            // Disable controls if any spin mode is active (Auto, Free, or current Spin)
+            const controlsDisabled = isSpinning || isFreeSpinActive || isAutoActive;
+
+            // Kontrol Taruhan + / -
+            document.getElementById('bet-up').disabled = controlsDisabled || (window.gameData.bet >= MAX_BET);
+            document.getElementById('bet-down').disabled = controlsDisabled || (window.gameData.bet <= MIN_BET);
+            // Kontrol Taruhan Min / Max
+            document.getElementById('bet-min').disabled = controlsDisabled || (window.gameData.bet === MIN_BET);
+            document.getElementById('bet-max').disabled = controlsDisabled || (window.gameData.bet === MAX_BET);
+
+            // Saldo dan Taruhan
+            document.getElementById('balance-display').textContent = formatCurrency(window.gameData.balance);
+            document.getElementById('bet-display').textContent = formatCurrency(window.gameData.bet);
+
+            // Teks Tombol Spin dan Logika Tampilan
+            const spinButton = document.getElementById('spin-button');
+            const stopAutoButton = document.getElementById('stop-auto-button');
+            const spinContainer = document.getElementById('spin-button-container');
+            const stopContainer = document.getElementById('stop-auto-button-container');
+
+            if (isAutoActive) {
+                // Auto is ON: Selalu tampilkan tombol STOP AUTO, meskipun sedang berputar
+                spinContainer.style.display = 'none';
+                stopContainer.style.display = 'flex';
+                stopAutoButton.textContent = `STOP AUTO (${autoSpinCount})`; 
+                
+            } else if (isFreeSpinActive) {
+                // Free Spin is ON: Gunakan slot tombol spin utama
+                spinButton.textContent = `FREE SPIN (${freeSpinCount})`;
+                spinContainer.style.display = 'flex';
+                stopContainer.style.display = 'none';
+                // Tidak bisa quick stop Free Spin
+                spinButton.disabled = isSpinning; 
+                
+            } else {
+                // Manual Spin mode
+                spinContainer.style.display = 'flex';
+                stopContainer.style.display = 'none';
+                
+                if (isSpinning) {
+                    // Putaran manual sedang berlangsung: Aktifkan quick stop
+                    spinButton.textContent = 'STOP SPIN'; // Teks yang lebih jelas untuk quick stop
+                    spinButton.disabled = false; // Diaktifkan agar bisa diklik untuk quickStop
+                } else {
+                    // Putaran manual siap
+                    spinButton.textContent = 'SPIN';
+                    spinButton.disabled = !isBetSufficient; // Nonaktifkan jika saldo tidak cukup
+                }
+            }
+
+            // Status Auto/Free Spin
+            let statusText = '';
+            if (isFreeSpinActive) {
+                statusText = `FREE SPIN: ${freeSpinCount} tersisa | Total Menang: ${formatCurrency(currentTotalWin)}`;
+            } else if (autoSpinCount > 0) {
+                statusText = `AUTO: ${autoSpinCount} tersisa`;
+            } else if (currentTotalWin > 0) {
+                statusText = `Total Menang Putaran: ${formatCurrency(currentTotalWin)}`;
+            }
+            document.getElementById('auto-status-display').textContent = statusText;
+
+            // --- UPDATE PERKALIAN DISPLAY ---
+            const activeMultipliers = isFreeSpinActive ? FREE_SPIN_MULTIPLIERS : NORMAL_MULTIPLIERS;
+            const multiplierContainer = document.getElementById('multiplier-box');
+            multiplierContainer.innerHTML = '';
+            
+            // Multiplier index didasarkan pada cascadeCount
+            const multiplierIndex = Math.min(cascadeCount, activeMultipliers.length - 1);
+
+            activeMultipliers.forEach((multiplier, index) => {
+                const item = document.createElement('div');
+                item.className = 'multiplier-item';
+                item.textContent = `x${multiplier}`;
+                if (index === multiplierIndex) {
+                    item.classList.add('active');
+                }
+                multiplierContainer.appendChild(item);
+            });
+            // --- END UPDATE PERKALIAN DISPLAY ---
+
+
+            // Update reel display
+            const reelGridEl = document.getElementById('reel-grid');
+            reelGridEl.innerHTML = '';
+            
+            // Set grid columns based on REELS constant
+            reelGridEl.style.gridTemplateColumns = `repeat(${REELS}, 1fr)`;
+
+            for (let c = 0; c < REELS; c++) {
+                for (let r = 0; r < ROWS; r++) { 
+                    const symbolId = reelsMatrix[c][r];
+                    const symbol = getSymbol(symbolId);
+                    const cellIndex = c * ROWS + r;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'symbol-cell';
+                    cell.id = `cell-${cellIndex}`;
+                    
+                    if (symbolId === 'E') { // Jika Pecahan/Kosong
+                        cell.classList.add('empty');
+                        cell.innerHTML = '';
+                    } else {
+                        cell.style.backgroundColor = symbol.color;
+                        const content = document.createElement('span');
+                        content.textContent = symbol.text;
+                        content.className = 'text-shadow-md'; 
+
+                        if (symbol.id === 'WD') { cell.style.color = '#1f2937'; } 
+                        else if (symbol.id === 'SC') { cell.style.color = 'black'; }
+                        else { cell.style.color = 'white'; }
+                        
+                        cell.appendChild(content);
+                    }
+                    reelGridEl.appendChild(cell);
+                }
+            }
+        }
+        
+        /**
+         * Menampilkan pesan notifikasi di kotak pesan di UI.
+         */
+        function showMessage(text, type = 'info') {
+            const box = document.getElementById('message-box');
+            let colorClass = 'bg-gray-700 text-gray-300'; // default info
+            
+            if (type === 'error') {
+                colorClass = 'bg-red-700 text-white shadow-lg shadow-red-500/50';
+            } else if (type === 'win') {
+                colorClass = 'bg-green-700 text-white shadow-lg shadow-green-500/50';
+            }
+
+            // Hapus timeout sebelumnya jika ada
+            if (messageTimeout) {
+                clearTimeout(messageTimeout);
+            }
+
+            box.className = `p-3 rounded-xl mb-4 text-center font-semibold ${colorClass}`;
+            box.textContent = text;
+
+            // Hapus pesan secara otomatis setelah 5 detik, kecuali pesan kemenangan yang kompleks
+            if (type !== 'win') {
+                messageTimeout = setTimeout(() => {
+                    box.className = 'p-3 rounded-xl mb-4 text-center font-semibold bg-gray-700 text-gray-300';
+                    box.textContent = '3125 Cara Mahjong © BOCHA\'DEV'; // Teks default diperbarui
+                }, 5000);
+            }
+        }
+        
+        function formatCurrency(amount) {
+            return 'Rp ' + (Math.round(amount)).toLocaleString('id-ID');
+        }
+
+        function toggleTurbo() {
+            if (isSpinning || autoSpinCount > 0 || freeSpinCount > 0) return;
+            isTurbo = !isTurbo;
+            document.getElementById('turbo-toggle-text').textContent = isTurbo ? 'TURBO ON' : 'TURBO OFF';
+            document.getElementById('turbo-toggle').classList.toggle('bg-gray-500', !isTurbo);
+            document.getElementById('turbo-toggle').classList.toggle('bg-yellow-600', isTurbo);
+            showMessage(`Turbo Spin: ${isTurbo ? 'Diaktifkan (Cepat)' : 'Dinonaktifkan (Normal)'}`, 'info');
+            updateUI();
+        }
+        
+        function startAutoSpin(count) {
+            if (isSpinning || autoSpinCount > 0 || freeSpinCount > 0) return;
+            if (window.gameData.balance < window.gameData.bet) {
+                showMessage("Saldo tidak cukup untuk memulai Auto Spin!", 'error');
+                return;
+            }
+
+            autoSpinCount = count;
+            showMessage(`Memulai Auto Spin ${count}x. Tekan STOP untuk membatalkan.`, 'info');
+            updateUI();
+            setTimeout(spinReels, 100); 
+        }
+
+        function stopAutoSpin() {
+            if (freeSpinCount > 0) {
+                showMessage("Tidak dapat menghentikan Free Spin.", 'error');
+                return;
+            }
+            if (autoSpinCount > 0) {
+                // Menghentikan seluruh rangkaian, tidak peduli isSpinning = true
+                autoSpinCount = 0; 
+                showMessage("Auto Spin dihentikan.", 'info');
+                updateUI();
+            }
+        }
+        
+        // --- CASCADING AND WAYS TO WIN LOGIC ---
+
+        /**
+         * Menerapkan Kaskade: Simbol pemenang dihapus, simbol di atasnya jatuh, dan slot kosong diisi dari atas.
+         */
+        function applyTumbleAndRefill(winningCells) {
+            // 1. Pecahkan Simbol Pemenang (Ganti dengan 'E' / Empty)
+            winningCells.forEach(coord => {
+                const [c, r] = coord.split('_').map(Number);
+                reelsMatrix[c][r] = 'E'; 
+            });
+
+            // 2. Aplikasikan Gravitasi dan Isi Ulang (Per Reel/Kolom)
+            for (let c = 0; c < REELS; c++) {
+                // Ambil semua simbol yang BUKAN 'E'
+                const nonEmptySymbols = reelsMatrix[c].filter(id => id !== 'E');
+                
+                // Hitung berapa banyak simbol baru yang dibutuhkan
+                const numNewSymbols = ROWS - nonEmptySymbols.length;
+                
+                // Isi slot kosong di bagian atas dengan simbol acak
+                const newSymbolsFromTop = Array(numNewSymbols).fill(null).map(() => getWeightedRandomSymbol());
+                
+                // Kolom baru = Simbol Baru (atas) + Simbol Lama yang Jatuh (bawah)
+                reelsMatrix[c] = [...newSymbolsFromTop, ...nonEmptySymbols];
+            }
+        }
+
+        /**
+         * Memeriksa kemenangan menggunakan mekanisme Ways to Win (Reels Berdekatan dari Kiri ke Kanan).
+         * @returns {{rawTotalWin: number, winningCellCoords: Set<string>, awardedFreeSpins: number}}
+         */
+        function checkWins() {
+            let rawTotalWin = 0;
+            const winningCellCoords = new Set(); // Format: "c_r"
+            let scatterCount = 0;
+            let awardedFreeSpins = 0; 
+            const betFactor = window.gameData.bet / 50; // Normalisasi taruhan ke unit dasar
+            
+            // 1. SCATTER CHECK (Kumpulkan semua Scatter)
+            for (let c = 0; c < REELS; c++) {
+                for (let r = 0; r < ROWS; r++) {
+                    if (reelsMatrix[c][r] === 'SC') {
+                        scatterCount++;
+                    }
+                }
+            }
+            if (scatterCount >= 3) {
+                awardedFreeSpins = 12; 
+                // Jika Free Spin dipicu, semua sel Scatter akan ikut pecah
+                 for (let c = 0; c < REELS; c++) {
+                    for (let r = 0; r < ROWS; r++) {
+                        if (reelsMatrix[c][r] === 'SC') {
+                             winningCellCoords.add(`${c}_${r}`);
+                        }
+                    }
+                }
+            }
+            
+            // 2. WAYS TO WIN CHECK (Left-to-Right Consecutive Reels)
+            
+            // Ambil semua simbol standar yang menjadi target kemenangan (selain Wild dan Scatter)
+            const standardSymbols = SYMBOLS.filter(s => s.id !== 'GD' && s.id !== 'SC' && s.id !== 'E').map(s => s.id);
+            
+            standardSymbols.forEach(targetSymbolId => {
+                let currentWays = 1;
+                let longestMatch = 0;
+                let potentialWinCoords = []; // Coordinates untuk targetSymbolId saat ini
+
+                for (let c = 0; c < REELS; c++) {
+                    const reelMatches = [];
+                    // Cek semua sel di reel saat ini (c)
+                    for (let r = 0; r < ROWS; r++) {
+                        const symbolId = reelsMatrix[c][r];
+                        
+                        // Simbol Pemenang: Target Simbol ATAU Wild ('GD')
+                        if (symbolId === targetSymbolId || symbolId === 'GD') {
+                            reelMatches.push(`${c}_${r}`);
+                        }
+                    }
+
+                    if (reelMatches.length > 0) {
+                        // Reel c cocok: tingkatkan match length dan gandakan ways
+                        longestMatch = c + 1;
+                        currentWays *= reelMatches.length;
+                        potentialWinCoords.push(...reelMatches);
+                    } else {
+                        // Jika reel tidak berdekatan, hentikan pencarian kombinasi ini
+                        break;
+                    }
+                }
+
+                let lineWin = 0;
+                let symbolValue = getSymbol(targetSymbolId).value;
+
+                // PAYOUT: Hanya membayar kombinasi Ways terpanjang (3x, 4x, atau 5x)
+                // FAKTOR PEMBAYARAN DIATUR SANGAT SANGAT RENDAH UNTUK KESULITAN EKSTREM
+                if (longestMatch === 5) {
+                    // Payout factor 5-of-a-kind (SANGAT SANGAT SULIT SEKALI: 2) - Dari 4 -> 2
+                    const payoutMultiplier = 2; 
+                    lineWin += symbolValue * currentWays * payoutMultiplier * betFactor;
+                } else if (longestMatch === 4) {
+                    // Payout factor 4-of-a-kind (SANGAT SANGAT SULIT SEKALI: 0.5) - Dari 1 -> 0.5
+                    const payoutMultiplier = 0.5; 
+                    lineWin += symbolValue * currentWays * payoutMultiplier * betFactor;
+                } else if (longestMatch === 3) { 
+                    // Payout factor 3-of-a-kind (SANGAT SANGAT SULIT SEKALI: 0.1) - Dari 0.25 -> 0.1
+                    const payoutMultiplier = 0.1; 
+                    lineWin += symbolValue * currentWays * payoutMultiplier * betFactor;
+                }
+                
+                if (lineWin > 0) {
+                    rawTotalWin += lineWin;
+                    // Tambahkan semua koordinat yang berkontribusi pada kemenangan ke Set utama
+                    potentialWinCoords.forEach(coord => winningCellCoords.add(coord));
+                }
+            });
+
+            // Pastikan Scatters yang tidak memicu FS tidak memicu kaskade
+            if (awardedFreeSpins === 0) {
+                winningCellCoords.forEach(coord => {
+                    const [c, r] = coord.split('_').map(Number);
+                    if (reelsMatrix[c][r] === 'SC') {
+                        winningCellCoords.delete(coord);
+                    }
+                });
+            }
+
+            return { rawTotalWin: Math.round(rawTotalWin), winningCellCoords, awardedFreeSpins };
+        }
+
+        // --- GAME CORE ---
+        
+        async function spinReels() {
+            if (isSpinning) {
+                // Logika Quick Stop hanya berlaku untuk putaran manual
+                if (!quickStop && autoSpinCount === 0 && freeSpinCount === 0) {
+                    quickStop = true;
+                    showMessage("Menghentikan putaran cepat...", 'info');
+                }
+                return;
+            }
+            // CATATAN PENTING: Kondisi 'if (autoSpinCount === 0 && !isSpinning && freeSpinCount === 0)'
+            // telah dihapus karena memblokir putaran manual.
+            
+            const isCurrentSpinFree = (freeSpinCount > 0);
+            
+            // Reset state untuk putaran baru jika bukan kaskade yang sedang berlanjut
+            if (!isSpinning) {
+                cascadeCount = 0; 
+                currentTotalWin = 0;
+            }
+            
+            if (!isCurrentSpinFree && window.gameData.balance < window.gameData.bet) {
+                if (autoSpinCount > 0) stopAutoSpin();
+                showMessage("Saldo tidak cukup untuk bertaruh!", 'error');
+                return;
+            }
+            
+            isSpinning = true;
+            quickStop = false; // Reset quick stop flag untuk putaran baru
+            
+            // Konsumsi Spin dan Potong Saldo (Hanya jika bukan Free Spin)
+            if (isCurrentSpinFree) {
+                freeSpinCount--; 
+            } else if (autoSpinCount > 0) {
+                autoSpinCount--;
+            }
+            if (!isCurrentSpinFree) {
+                window.gameData.balance -= window.gameData.bet;
+            }
+
+            window.saveBalance();
+            updateUI();
+
+            const startTime = Date.now();
+            const baseDuration = isTurbo ? 300 : 1500; 
+            const frameInterval = isTurbo ? 20 : 80;
+            
+            let spinInterval = setInterval(() => {
+                // Simulasi visual putaran
+                for (let c = 0; c < REELS; c++) {
+                     for (let r = 0; r < ROWS; r++) { 
+                        const cellIndex = c * ROWS + r;
+                        const cell = document.getElementById(`cell-${cellIndex}`);
+                        
+                        // Periksa apakah cell ada sebelum mencoba mengakses propertinya
+                        if(cell) { 
+                            // Menggunakan simbol acak dari pool berbobot untuk visual spin
+                            const randomId = getWeightedRandomSymbol(); 
+                            const randomSymbol = getSymbol(randomId);
+                            
+                            cell.style.backgroundColor = randomSymbol.color;
+                            
+                            // Pastikan inner content ada sebelum diakses
+                            const contentSpan = cell.querySelector('span');
+                            if(contentSpan) {
+                                contentSpan.textContent = randomSymbol.text;
+                            } else {
+                                // Jika tidak ada span, buat satu (untuk jaga-jaga)
+                                const newSpan = document.createElement('span');
+                                newSpan.textContent = randomSymbol.text;
+                                newSpan.className = 'text-shadow-md';
+                                cell.innerHTML = ''; // Kosongkan dulu
+                                cell.appendChild(newSpan);
+                            }
+
+                            cell.classList.remove('winning');
+                            cell.classList.remove('empty');
+                        }
+                    }
+                }
+
+                // --- CHECK QUICK STOP (BARU) ---
+                if (quickStop || (Date.now() - startTime >= baseDuration)) {
+                    clearInterval(spinInterval);
+                    
+                    // Isi reelsMatrix dengan hasil akhir menggunakan simbol acak berbobot
+                    reelsMatrix = Array(REELS).fill(null).map(() => 
+                        Array(ROWS).fill(null).map(() => 
+                            getWeightedRandomSymbol() 
+                        )
+                    );
+                    updateUI();
+                    
+                    // Lanjutkan ke logic kaskade/pecahan
+                    const cascadeDelay = quickStop ? 50 : 200; // Lebih cepat jika Quick Stop
+                    setTimeout(() => startCascadeSequence(isCurrentSpinFree), cascadeDelay);
+                    return; 
+                }
+            }, frameInterval);
+        }
+
+        async function startCascadeSequence(wasFreeSpin) {
+            let hasWonThisCascade = true;
+            let totalAwardedFreeSpins = 0;
+            const delay = isTurbo || quickStop ? 200 : 800; // Delay antar kaskade dipersingkat jika Quick Stop/Turbo
+            quickStop = false; // Reset setelah hasil muncul
+
+            while (hasWonThisCascade) {
+                // Cek apakah Auto Spin dihentikan di tengah Kaskade
+                // Hanya periksa jika itu BUKAN Free Spin (Free Spin tidak bisa dibatalkan)
+                if (autoSpinCount === 0 && !wasFreeSpin && freeSpinCount === 0) {
+                    break; // Keluar dari loop kaskade jika Auto Spin dihentikan
+                }
+                
+                hasWonThisCascade = false;
+
+                // 1. Cek Kemenangan
+                const { rawTotalWin, winningCellCoords, awardedFreeSpins } = checkWins();
+                
+                if (rawTotalWin > 0 || awardedFreeSpins > 0) {
+                    hasWonThisCascade = true;
+                    cascadeCount++; // Pemicu pengganda
+
+                    // Hanya tambahkan totalAwardedFreeSpins jika ini bukan Free Spin yang sedang berlanjut, 
+                    // karena FS yang sedang berjalan akan berlanjut, dan FS baru yang dimenangkan akan dihitung di akhir.
+                    if (!wasFreeSpin || cascadeCount === 1) { 
+                        totalAwardedFreeSpins += awardedFreeSpins;
+                    }
+
+
+                    // 2. Terapkan Multiplier
+                    const activeMultipliers = wasFreeSpin || freeSpinCount > 0 ? FREE_SPIN_MULTIPLIERS : NORMAL_MULTIPLIERS;
+                    // Multiplier index adalah (cascadeCount - 1) karena kaskade 1 = index 0 (x1/x2)
+                    const multiplierIndex = Math.min(cascadeCount - 1, activeMultipliers.length - 1);
+                    const currentMultiplierValue = activeMultipliers[multiplierIndex];
+                    
+                    const finalWin = rawTotalWin * currentMultiplierValue;
+                    currentTotalWin += finalWin;
+                    window.gameData.balance += finalWin;
+                    window.saveBalance();
+
+                    // 3. Animasi Kemenangan dan Pecahan
+                    showMessage(`KASKADE ke-${cascadeCount}! Menang: ${formatCurrency(finalWin)} (x${currentMultiplierValue})!`, 'win');
+                    
+                    // Highlight dan tunggu sebentar
+                    highlightWins(winningCellCoords);
+                    updateUI();
+
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    
+                    // 4. Pecahkan Simbol dan Terapkan Kaskade/Drop
+                    applyTumbleAndRefill(winningCellCoords);
+                    updateUI(); // Tunjukkan sel kosong dan simbol baru jatuh
+
+                    // Tunggu sebentar agar pemain melihat simbol baru di tempatnya
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+
+            // --- Selesai Kaskade ---
+            isSpinning = false;
+            
+            if (totalAwardedFreeSpins > 0) {
+                freeSpinCount += totalAwardedFreeSpins; 
+                autoSpinCount = 0; 
+                showMessage(`SCATTER! Anda mendapatkan ${totalAwardedFreeSpins}x Free Spin! Total FS: ${freeSpinCount}`, 'win');
+            } else if (currentTotalWin > 0) {
+                 showMessage(`PUTARAN SELESAI. Total Menang: ${formatCurrency(currentTotalWin)}!`, 'win');
+            } else if (autoSpinCount === 0 && !wasFreeSpin) {
+                // Pesan tidak ada kemenangan hanya jika Auto Spin tidak dihentikan dan bukan FS
+                 showMessage("Tidak ada kemenangan. Coba lagi!", 'info');
+            }
+
+            // Lanjutkan Auto/Free Spin jika ada
+            if (freeSpinCount > 0 || autoSpinCount > 0) {
+                setTimeout(spinReels, isTurbo ? 50 : 500); 
+            } else {
+                // Reset total win display setelah putaran selesai
+                currentTotalWin = 0; 
+            }
+
+            updateUI();
+        }
+
+        function highlightWins(winningCellCoords) {
+            winningCellCoords.forEach(coord => {
+                const [c, r] = coord.split('_').map(Number);
+                const cellIndex = c * ROWS + r;
+                const cell = document.getElementById(`cell-${cellIndex}`);
+                if (cell) {
+                    cell.classList.add('winning');
+                }
+            });
+        }
+        
+        // Bet Adjustment Functions
+        function adjustBet(amount) {
+            const newBet = window.gameData.bet + amount;
+            // Batasan taruhan (MIN_BET dan MAX_BET)
+            if (newBet >= MIN_BET && newBet <= MAX_BET && !isSpinning && autoSpinCount === 0 && freeSpinCount === 0) {
+                window.gameData.bet = newBet;
+                updateUI();
+            }
+        }
+        
+        // Fungsi baru untuk menetapkan taruhan ke nilai Min/Max
+        function setMinMaxBet(targetBet) {
+            if (!isSpinning && autoSpinCount === 0 && freeSpinCount === 0) {
+                if (targetBet >= MIN_BET && targetBet <= MAX_BET) {
+                    window.gameData.bet = targetBet;
+                    updateUI();
+                } else {
+                    showMessage(`Batas taruhan adalah antara ${formatCurrency(MIN_BET)} dan ${formatCurrency(MAX_BET)}.`, 'error');
+                }
+            } else {
+                 showMessage("Tidak dapat mengubah taruhan saat putaran sedang aktif.", 'error');
+            }
+        }
+        
+        // Initial setup on window load
+        window.onload = function() {
+            window.initializeAuthAndData();
+            updateDateTimeDisplay(); 
+            setInterval(updateDateTimeDisplay, 1000);
+
+            document.getElementById('spin-button').addEventListener('click', window.spinReels);
+            
+            // Listener untuk tombol +/-
+            document.getElementById('bet-down').addEventListener('click', () => adjustBet(-400));
+            document.getElementById('bet-up').addEventListener('click', () => adjustBet(400));
+
+            // Listener BARU untuk tombol MIN/MAX
+            document.getElementById('bet-min').addEventListener('click', () => setMinMaxBet(MIN_BET));
+            document.getElementById('bet-max').addEventListener('click', () => setMinMaxBet(MAX_BET));
+
+            document.getElementById('turbo-toggle').addEventListener('click', window.toggleTurbo);
+            
+            document.getElementById('auto-10x').addEventListener('click', () => window.startAutoSpin(10));
+            document.getElementById('auto-50x').addEventListener('click', () => window.startAutoSpin(50));
+            document.getElementById('auto-100x').addEventListener('click', () => window.startAutoSpin(100));
+            document.getElementById('auto-500x').addEventListener('click', () => window.startAutoSpin(500));
+            document.getElementById('auto-1000x').addEventListener('click', () => window.startAutoSpin(1000));
+            document.getElementById('stop-auto-button').addEventListener('click', window.stopAutoSpin);
+            
+            updateUI();
+        };
+        // --- GAME LOGIC END ---
+    </script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="slot-container">
+        <!-- Header & Info -->
+        <div class="text-center mb-6">
+            <!-- Nama slot MAHJONG WAYS -->
+            <h1 class="text-4xl font-extrabold text-[#f7d300] tracking-wider mb-2">MAHJONG WAYS</h1>
+            <!-- Deskripsi diperbarui: [SANGAT SANGAT SULIT SEKALI] telah dihapus -->
+            <p class="text-gray-400 text-sm italic">3125 Cara Mahjong © BOCHA'DEV</p>
+            <p id="user-id-display" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+
+        <!-- Pesan Status/Menang -->
+        <div id="message-box" class="p-3 rounded-xl mb-4 text-center font-semibold bg-gray-700 text-gray-300">
+            3125 Cara Mahjong © BOCHA'DEV
+        </div>
+        <div id="auto-status-display" class="text-center text-lg font-bold text-yellow-400 mb-4 h-6"></div>
+
+        <!-- Multiplier Display -->
+        <div id="multiplier-box" class="multiplier-box">
+            <!-- Multiplier items generated by JS -->
+        </div>
+
+        <!-- Reel Grid -->
+        <div id="reel-grid" class="reel-grid shadow-2xl">
+            <!-- Sel-sel simbol akan diisi oleh JavaScript -->
+        </div>
+
+        <!-- Bottom Panel: Stats & Controls -->
+        <div class="mt-8 flex flex-col md:flex-row justify-between items-center bg-[#1f2937] p-4 rounded-xl shadow-lg border-2 border-[#ffcc00] control-panel">
+            
+            <!-- Saldo (Balance) -->
+            <div id="balance-container" class="flex flex-col items-center mb-4 md:mb-0 w-full md:w-1/4">
+                <span class="text-xs font-medium text-[#f7d300]">SALDO</span>
+                <span id="balance-display" class="text-3xl font-bold text-white">Rp 100.000</span>
+            </div>
+
+            <!-- Taruhan (Bet) Controls (Minimalis Style) -->
+            <div id="bet-controls-container" class="flex flex-col items-center w-full md:w-1/4">
+                <span class="text-xs font-medium text-gray-400 mb-1">TARUHAN</span>
+                
+                <!-- Kontrol Min/Max BARU -->
+                <div class="flex items-center space-x-2 w-full justify-center mb-2">
+                    <button id="bet-min" class="bet-control-btn w-1/4 py-1 text-sm">MIN</button>
+                    <button id="bet-max" class="bet-control-btn w-1/4 py-1 text-sm">MAX</button>
+                </div>
+
+                <div class="flex items-center space-x-2 w-full justify-center">
+                    <!-- Tombol Minus Minimalis -->
+                    <button id="bet-down" class="bet-control-btn w-10 h-10 text-xl">-</button>
+                    
+                    <!-- Display Taruhan -->
+                    <span id="bet-display" class="text-xl font-bold text-white w-24 text-center py-2 bg-[#3f4a59] rounded-lg shadow-inner">Rp 400</span>
+                    
+                    <!-- Tombol Plus Minimalis -->
+                    <button id="bet-up" class="bet-control-btn w-10 h-10 text-xl">+</button>
+                </div>
+            </div>
+            
+            <!-- Turbo & Auto Spin -->
+            <div class="flex flex-col justify-center items-center w-full md:w-2/4 mt-4 md:mt-0 space-y-2">
+                <!-- Turbo Toggle -->
+                <button id="turbo-toggle" class="w-full md:w-40 py-2 rounded-lg text-white font-bold transition-colors duration-150 ease-in-out bg-gray-500">
+                    <span id="turbo-toggle-text">TURBO OFF</span>
+                </button>
+                
+                <!-- Auto Spin Options -->
+                <div id="auto-spin-controls" class="flex flex-wrap justify-center gap-2 w-full">
+                    <button id="auto-10x" class="auto-spin-option text-white text-sm font-semibold py-1 px-2 rounded-lg shadow-md">10x</button>
+                    <button id="auto-50x" class="auto-spin-option text-white text-sm font-semibold py-1 px-2 rounded-lg shadow-md">50x</button>
+                    <button id="auto-100x" class="auto-spin-option text-white text-sm font-semibold py-1 px-2 rounded-lg shadow-md">100x</button>
+                    <button id="auto-500x" class="auto-spin-option text-white text-sm font-semibold py-1 px-2 rounded-lg shadow-md">500x</button>
+                    <button id="auto-1000x" class="auto-spin-option text-white text-sm font-semibold py-1 px-2 rounded-lg shadow-md">1000x</button>
+                </div>
+            </div>
+
+            <!-- Spin Button / Stop Auto Button -->
+            <!-- Kontainer ini digunakan untuk Manual Spin atau Free Spin -->
+            <div id="spin-button-container" class="w-full md:w-1/4 flex justify-center md:justify-end mt-4 md:mt-0">
+                <button id="spin-button" class="spin-button text-white font-black py-3 px-8 rounded-full text-xl uppercase shadow-xl w-full md:w-auto transition-all duration-100 ease-in-out">
+                    SPIN
+                </button>
+            </div>
+            
+            <!-- Kontainer ini digunakan untuk Auto Spin dan selalu visible saat Auto aktif -->
+            <div id="stop-auto-button-container" class="w-full md:w-1/4 flex justify-center md:justify-end mt-4 md:mt-0" style="display: none;">
+                <button id="stop-auto-button" class="spin-button text-white font-black py-3 px-8 rounded-full text-xl uppercase shadow-xl w-full md:w-auto transition-all duration-100 ease-in-out bg-red-600 hover:bg-red-700">
+                    STOP AUTO
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center text-gray-500 text-xs">
+            <p>Saldo disimpan menggunakan Firebase Firestore.</p>
+        </div>
+    </div>
+
+</body>
+</html>
